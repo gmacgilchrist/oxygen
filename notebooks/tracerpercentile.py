@@ -21,7 +21,7 @@ def calc_histogram(tracer,volume,tracer_bins=None,normalize=True):
     tracername=tracer.name
     # Derive bins if not specified
     if tracer_bins is None:
-        tracer_bins = np.linspace(tracer.min().values,tracer.min().values,50)
+        tracer_bins = np.linspace(tracer.min().values,tracer.max().values,100)
     # Get dimensions to sum over (all dimensions and remove 'time')
     histdims = list(tracer.dims)
     histdims.remove('time')
