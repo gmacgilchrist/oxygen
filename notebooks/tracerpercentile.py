@@ -1,6 +1,7 @@
 import xarray as xr
 from xhistogram.xarray import histogram
 import numpy as np
+from dask.diagnostics import ProgressBar
 
 def calc_histogram(tracer,volume,tracer_bins=None,normalize=True):
     '''
@@ -70,7 +71,7 @@ def invert_and_interpolate_1Dhistogram(hs,percentiles=None):
     return tp
 
 
-def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascending=True):
+def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascending=True,verbose=True):
     '''
     Calculate 'tracer' as a function of volume percentile. This involves binning volume
     in tracer space, deriving the cumulative sum over tracer values, then inverting.
@@ -95,13 +96,20 @@ def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascend
     # Cumulative volumetric sum
     VT = hs.sum(tracername+'_bin')
     hs_frac = 100*hs.cumsum(tracername+'_bin')/VT
-    print("Loading volumetric histogram.")
-    hs_frac.compute()
+    print("Computing volumetric histogram.")
+    if verbose:
+        with ProgressBar():
+            hs_frac.compute()
+    else:
+        hs_frac.compute()
     # Loop through time, get tracer percentile at each time
-    tp = xr.DataArray(dims=['percentile','time'],
+    tp = xr.DataArray(name=tracername,dims=['percentile','time'],
                       coords={'percentile':percentiles,'time':hs_frac['time']})
     print("Inverting for tracer percentile at each time.")
-    for t in range(len(hs_frac['time'])):
+    nt = len(hs_frac['time'])
+    for t in range(nt):
+        if verbose & (t%10==0):
+            print('time index : '+str(t)+'/'+str(nt)) 
         hsnow = hs_frac.isel(time=t)
         tpnow = invert_and_interpolate_1Dhistogram(hsnow)
         tp[:,t] = tpnow
@@ -123,5 +131,6 @@ def calc_extensive(tp,VT,prefactor=1):
     RETURN
         Tp xr.DataArray
     '''
-    
-    return 0.01*VT*(tp*prefactor).cumsum('percentile')
+    Tp = 0.01*VT*(tp*prefactor).cumsum('percentile')
+    Tp.name = tp.name+'_extensive'
+    return Tp
