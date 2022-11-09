@@ -37,7 +37,7 @@ def calc_histogram(tracer,volume,tracer_bins=None,normalize=True):
                                dims=tracername+'_bin',
                                coords={tracername+'_bin':hs[tracername+'_bin']})
         hs = hs/dtracer
-    return hs
+    return hs, dtracer
 
 def invert_and_interpolate_1Dhistogram(hs,percentiles=None):
     '''
@@ -95,12 +95,12 @@ def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascend
     # Get name of tracer
     tracername=tracer.name
     # Derive histogram
-    hs = calc_histogram(tracer,volume,tracer_bins=tracer_bins,normalize=True)
+    hs, dtracer = calc_histogram(tracer,volume,tracer_bins=tracer_bins,normalize=True)
     # Sort to ascending or descending
     hs = hs.sortby(tracername+'_bin',ascending=ascending)
     # Cumulative volumetric sum
-    VT = hs.sum(tracername+'_bin')
-    hs_frac = 100*hs.cumsum(tracername+'_bin')/VT
+    VT = (hs*dtracer).sum(tracername+'_bin')
+    hs_frac = 100*(hs*dtracer).cumsum(tracername+'_bin')/VT
     print("Computing volumetric histogram.")
     if verbose:
         with ProgressBar():
