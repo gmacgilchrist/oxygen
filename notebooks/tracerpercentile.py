@@ -71,7 +71,7 @@ def invert_and_interpolate_1Dhistogram(hs,percentiles=None):
     return tp
 
 
-def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascending=True,verbose=True):
+def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascending=True,extensive=True,prefactor=1,verbose=True):
     '''
     Calculate 'tracer' as a function of volume percentile. This involves binning volume
     in tracer space, deriving the cumulative sum over tracer values, then inverting.
@@ -83,9 +83,14 @@ def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascend
         percentiles None or np.array
         ascending bool
             In cumulative volumetric sum, arrange tracer in ascending order.
+        extensive bool
+            Include calculation of extensive quantity as a function of percentile
+        prefactor int, float
+            Any prefactor for integration of the extensive quantity, e.g. density or heat capacity
         
     RETURN
-        tp xr.DataArray
+        ds xr.Dataset
+            Dataset including the tracer and the associated extensive quantity as a function of percentile
     '''
     # Get name of tracer
     tracername=tracer.name
@@ -103,8 +108,9 @@ def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascend
     else:
         hs_frac.compute()
     # Loop through time, get tracer percentile at each time
-    tp = xr.DataArray(name=tracername,dims=['percentile','time'],
-                      coords={'percentile':percentiles,'time':hs_frac['time']})
+    ds = xr.Dataset()
+    ds['tp'] = xr.DataArray(dims=['percentile','time'],
+                            coords={'percentile':percentiles,'time':hs_frac['time']})
     print("Inverting for tracer percentile at each time.")
     nt = len(hs_frac['time'])
     for t in range(nt):
@@ -112,11 +118,14 @@ def calc_tracerpercentile(tracer,volume,tracer_bins=None,percentiles=None,ascend
             print('time index : '+str(t)+'/'+str(nt)) 
         hsnow = hs_frac.isel(time=t)
         tpnow = invert_and_interpolate_1Dhistogram(hsnow)
-        tp[:,t] = tpnow
+        ds['tp'][:,t] = tpnow
         
-    return tp,VT
+    if extensive:
+        ds['Tp'] = _calc_extensive(ds['tp'],VT,prefactor=prefactor)
+        
+    return ds
 
-def calc_extensive(tp,VT,prefactor=1):
+def _calc_extensive(tp,VT,prefactor=1):
     '''
     Calculate the extensive tracer quantity based on the tracer percentile.
     For example, if tracer=temperature, calc_extensive can be used to return 
