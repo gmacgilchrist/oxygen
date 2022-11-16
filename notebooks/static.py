@@ -16,8 +16,8 @@ def tracer_args():
 def dataset_args():
     return {
         'gobai':{'color':'tab:blue'},
-        'esm4':{'color':'tab:orange'},
-        'cm4':{'color':'tab:green'}
+        'esm4':{'color':'tab:orange','config_id':'ESM4_historical_D1'},
+        'cm4':{'color':'tab:green','config_id':'CM4_historical'}
     }
 
 def direction_name(ascending):
