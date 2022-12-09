@@ -27,7 +27,10 @@ def direction_name(ascending):
         direction = 'descending'
     return direction
 
-def path_tp(tracername,dataset,ascending):
+def path_tp(tracername,dataset,ascending,upper2k=False):
     outdir = '../data/tracerpercentiles/'
-    filename = '.'.join([tracername,dataset,direction_name(ascending),'nc'])
+    if upper2k:
+        filename = '.'.join([tracername,dataset,direction_name(ascending),'upper2k','nc'])
+    else:
+        filename = '.'.join([tracername,dataset,direction_name(ascending),'nc'])
     return outdir+filename
